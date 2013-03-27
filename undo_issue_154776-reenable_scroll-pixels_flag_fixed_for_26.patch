@@ -1,0 +1,96 @@
+--- a/chrome/browser/chromeos/login/login_utils.cc	2013-03-21 21:13:56.000000000 -0400
++++ b/chrome/browser/chromeos/login/login_utils.cc	2013-03-26 19:35:55.780716931 -0400
+@@ -766,6 +766,7 @@
+       ::switches::kHasChromeOSDiamondKey,
+       ::switches::kHasChromeOSKeyboard,
+       ::switches::kLoginProfile,
++      ::switches::kScrollPixels,
+       ::switches::kNaturalScrollDefault,
+       ::switches::kNoSandbox,
+       ::switches::kPpapiFlashArgs,
+--- a/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-03-21 21:13:14.000000000 -0400
++++ b/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-03-26 19:31:14.227049770 -0400
+@@ -457,6 +457,27 @@
+     return TRUE;
+   }
+ 
++  // Allow the vertical scroll delta to be overridden from the command line.
++  // This will allow us to test more easily to discover the amount
++  // (either hard coded or computed) that's best.
++  static float GetScrollPixelsPerTick() {
++    static float scroll_pixels = -1;
++    if (scroll_pixels < 0) {
++      // TODO(brettw): Remove the command line switch (crbug.com/63525)
++      scroll_pixels = kDefaultScrollPixelsPerTick;
++      CommandLine* command_line = CommandLine::ForCurrentProcess();
++      std::string scroll_pixels_option =
++          command_line->GetSwitchValueASCII(switches::kScrollPixels);
++      if (!scroll_pixels_option.empty()) {
++        double v;
++        if (base::StringToDouble(scroll_pixels_option, &v))
++          scroll_pixels = static_cast<float>(v);
++      }
++      DCHECK_GT(scroll_pixels, 0);
++    }
++    return scroll_pixels;
++  }
++
+   // Return the net up / down (or left / right) distance represented by events
+   // in the  events will be removed from the queue. We only look at the top of
+   // queue...any other type of event will cause us not to look farther.
+@@ -502,7 +523,7 @@
+       gdk_event_put(event);
+       gdk_event_free(event);
+     }
+-    return num_clicks * kDefaultScrollPixelsPerTick;
++    return num_clicks * GetScrollPixelsPerTick();
+   }
+ 
+   static gboolean OnMouseScrollEvent(GtkWidget* widget,
+@@ -526,15 +547,15 @@
+     if (event->direction == GDK_SCROLL_UP ||
+         event->direction == GDK_SCROLL_DOWN) {
+       if (event->direction == GDK_SCROLL_UP)
+-        web_event.deltaY = kDefaultScrollPixelsPerTick;
++        web_event.deltaY = GetScrollPixelsPerTick();
+       else
+-        web_event.deltaY = -kDefaultScrollPixelsPerTick;
++        web_event.deltaY = -GetScrollPixelsPerTick();
+       web_event.deltaY += GetPendingScrollDelta(true, event->state);
+     } else {
+       if (event->direction == GDK_SCROLL_LEFT)
+-        web_event.deltaX = kDefaultScrollPixelsPerTick;
++        web_event.deltaX = GetScrollPixelsPerTick();
+       else
+-        web_event.deltaX = -kDefaultScrollPixelsPerTick;
++        web_event.deltaX = -GetScrollPixelsPerTick();
+       web_event.deltaX += GetPendingScrollDelta(false, event->state);
+     }
+     RenderWidgetHostImpl::From(
+--- a/content/public/common/content_switches.cc	2013-03-21 21:13:15.000000000 -0400
++++ b/content/public/common/content_switches.cc	2013-03-26 19:31:55.859442495 -0400
+@@ -765,6 +765,11 @@
+ const char kChildCleanExit[]                = "child-clean-exit";
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++// Specify the amount the trackpad should scroll by.
++const char kScrollPixels[]                  = "scroll-pixels";
++#endif
++
+ #if defined(OS_MACOSX) && !defined(OS_IOS)
+ const char kDisableCarbonInterposing[]      = "disable-carbon-interposing";
+ #endif
+--- a/content/public/common/content_switches.h	2013-03-21 21:13:15.000000000 -0400
++++ b/content/public/common/content_switches.h	2013-03-26 19:38:21.047474709 -0400
+@@ -241,6 +241,10 @@
+ extern const char kChildCleanExit[];
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++extern const char kScrollPixels[];
++#endif
++
+ #if defined(OS_MACOSX) && !defined(OS_IOS)
+ extern const char kDisableCarbonInterposing[];
+ #endif
