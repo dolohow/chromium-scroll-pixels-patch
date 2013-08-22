@@ -15,6 +15,6 @@ Thank you and enjoy.
 ## Arch linux package
 [Here](https://aur.archlinux.org/packages/chromium-scroll-pixels) is an Arch PKGBUILD that mirrors that of the official [community]/chromium I maintain that has this patch enabled.
 
-Arch users not wanting to compile on their own (it takes ~20 min on my 4.5 GHz Ivybridge), may freely use precompiled packages which I hope at my unofficial repo: http://repo-ck.com
+Arch users not wanting to compile on their own (it takes ~20 min on my 4.5 GHz Ivybridge), may freely use precompiled packages which I maintain on my unofficial repo: http://repo-ck.com
 
 Thanks and enjoy.
