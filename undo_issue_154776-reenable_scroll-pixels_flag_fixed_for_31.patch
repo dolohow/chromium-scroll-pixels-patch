@@ -1,0 +1,89 @@
+--- a/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-11-08 01:41:48.000000000 -0500
++++ b/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-11-12 17:35:49.621872399 -0500
+@@ -449,6 +449,28 @@
+   }
+ 
+   // Return the net up / down (or left / right) distance represented by events
++  // Allow the vertical scroll delta to be overridden from the command line.
++  // This will allow us to test more easily to discover the amount
++  // (either hard coded or computed) that's best.
++  static float GetScrollPixelsPerTick() {
++    static float scroll_pixels = -1;
++    if (scroll_pixels < 0) {
++      // TODO(brettw): Remove the command line switch (crbug.com/63525)
++      scroll_pixels = kDefaultScrollPixelsPerTick;
++      CommandLine* command_line = CommandLine::ForCurrentProcess();
++      std::string scroll_pixels_option =
++          command_line->GetSwitchValueASCII(switches::kScrollPixels);
++      if (!scroll_pixels_option.empty()) {
++        double v;
++        if (base::StringToDouble(scroll_pixels_option, &v))
++          scroll_pixels = static_cast<float>(v);
++      }
++      DCHECK_GT(scroll_pixels, 0);
++    }
++    return scroll_pixels;
++  }
++
++  // Return the net up / down (or left / right) distance represented by events
+   // in the  events will be removed from the queue. We only look at the top of
+   // queue...any other type of event will cause us not to look farther.
+   // If there is a change to the set of modifier keys or scroll axis
+--- a/content/public/common/content_switches.cc	2013-11-08 01:41:43.000000000 -0500
++++ b/content/public/common/content_switches.cc	2013-11-12 17:33:07.064945882 -0500
+@@ -972,6 +972,11 @@
+ const char kChildCleanExit[]                = "child-clean-exit";
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++// Specify the amount the trackpad should scroll by.
++const char kScrollPixels[]                  = "scroll-pixels";
++#endif
++
+ #if defined(USE_AURA)
+ // Forces usage of the test compositor. Needed to run ui tests on bots.
+ extern const char kTestCompositor[]         = "test-compositor";
+--- a/content/public/common/content_switches.h	2013-11-08 01:41:43.000000000 -0500
++++ b/content/public/common/content_switches.h	2013-11-12 17:33:42.910991917 -0500
+@@ -289,6 +289,10 @@
+ extern const char kChildCleanExit[];
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++extern const char kScrollPixels[];
++#endif
++
+ #if defined(USE_AURA)
+ CONTENT_EXPORT extern const char kTestCompositor[];
+ #endif
+--- a/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-11-08 01:41:48.000000000 -0500
++++ b/content/browser/renderer_host/render_widget_host_view_gtk.cc	2013-11-12 17:35:49.621872399 -0500
+@@ -449,6 +449,28 @@
+   }
+ 
+   // Return the net up / down (or left / right) distance represented by events
++  // Allow the vertical scroll delta to be overridden from the command line.
++  // This will allow us to test more easily to discover the amount
++  // (either hard coded or computed) that's best.
++  static float GetScrollPixelsPerTick() {
++    static float scroll_pixels = -1;
++    if (scroll_pixels < 0) {
++      // TODO(brettw): Remove the command line switch (crbug.com/63525)
++      scroll_pixels = kDefaultScrollPixelsPerTick;
++      CommandLine* command_line = CommandLine::ForCurrentProcess();
++      std::string scroll_pixels_option =
++          command_line->GetSwitchValueASCII(switches::kScrollPixels);
++      if (!scroll_pixels_option.empty()) {
++        double v;
++        if (base::StringToDouble(scroll_pixels_option, &v))
++          scroll_pixels = static_cast<float>(v);
++      }
++      DCHECK_GT(scroll_pixels, 0);
++    }
++    return scroll_pixels;
++  }
++
++  // Return the net up / down (or left / right) distance represented by events
+   // in the  events will be removed from the queue. We only look at the top of
+   // queue...any other type of event will cause us not to look farther.
+   // If there is a change to the set of modifier keys or scroll axis
