@@ -1,5 +1,5 @@
---- chromium-31.0.1650.57/chrome/browser/chromeos/login/chrome_restart_request.cc       2013-11-16 01:16:43.000000000 +0100
-+++ chromium-31.0.1650.57-2/chrome/browser/chromeos/login/chrome_restart_request.cc     2013-11-26 23:08:17.573616984 +0100
+--- a/chrome/browser/chromeos/login/chrome_restart_request.cc     2013-11-16 01:16:43.000000000 +0100
++++ b/chrome/browser/chromeos/login/chrome_restart_request.cc     2013-11-26 23:08:17.573616984 +0100
 @@ -111,6 +111,7 @@
        ::switches::kGpuStartupDialog,
        ::switches::kGpuSandboxAllowSysVShm,
@@ -8,8 +8,8 @@
        ::switches::kNoSandbox,
        ::switches::kPpapiFlashArgs,
        ::switches::kPpapiFlashInProcess,
---- chromium-31.0.1650.57/content/browser/renderer_host/render_widget_host_view_gtk.cc  2013-11-16 01:17:37.000000000 +0100
-+++ chromium-31.0.1650.57-2/content/browser/renderer_host/render_widget_host_view_gtk.cc        2013-11-26 23:28:59.322677081 +0100
+--- a/content/browser/renderer_host/render_widget_host_view_gtk.cc  2013-11-16 01:17:37.000000000 +0100
++++ b/content/browser/renderer_host/render_widget_host_view_gtk.cc  2013-11-26 23:28:59.322677081 +0100
 @@ -41,6 +41,7 @@
  #include "skia/ext/platform_canvas.h"
  #include "third_party/WebKit/public/web/WebInputEvent.h"
@@ -133,8 +133,8 @@
        web_event.deltaX += GetPendingScrollDelta(false, event->state);
      }
      RenderWidgetHostImpl::From(
---- chromium-31.0.1650.57/content/public/common/content_switches.cc     2013-11-16 01:17:39.000000000 +0100
-+++ chromium-31.0.1650.57-2/content/public/common/content_switches.cc   2013-11-27 21:02:54.424078067 +0100
+--- a/content/public/common/content_switches.cc   2013-11-16 01:17:39.000000000 +0100
++++ b/content/public/common/content_switches.cc   2013-11-27 21:02:54.424078067 +0100
 @@ -972,6 +972,11 @@
  const char kChildCleanExit[]                = "child-clean-exit";
  #endif
@@ -147,8 +147,8 @@
  #if defined(USE_AURA)
  // Forces usage of the test compositor. Needed to run ui tests on bots.
  extern const char kTestCompositor[]         = "test-compositor";
---- chromium-31.0.1650.57/content/public/common/content_switches.h      2013-11-16 01:17:39.000000000 +0100
-+++ chromium-31.0.1650.57-2/content/public/common/content_switches.h    2013-11-27 21:03:43.081080422 +0100
+--- a/content/public/common/content_switches.h    2013-11-16 01:17:39.000000000 +0100
++++ b/content/public/common/content_switches.h    2013-11-27 21:03:43.081080422 +0100
 @@ -289,6 +289,10 @@
  extern const char kChildCleanExit[];
  #endif
