@@ -9,7 +9,7 @@ In the linked bug report above, you will see referenced [this ticket against GTK
 
 ## Contributors
 * graysky2 (v25-v30)
-* dolohow  (v32+)
+* dolohow  (v31+)
 
 ## Arch linux package
 [Here](https://aur.archlinux.org/packages/chromium-scroll-pixels) is an Arch PKGBUILD that mirrors that of the official [community]/chromium I maintain that has this patch enabled.
