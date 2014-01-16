@@ -7,6 +7,10 @@ Although at least one extension exists that will emulate this behavior, many pre
 
 In the linked bug report above, you will see referenced [this ticket against GTK](https://bugs.launchpad.net/gtk/+bug/124440) which has been opened since Aug of 2007 and remains open.  The strategy of the chromium dev team apparently is to off load the mouse scrolling speed adjustment to a yet-to-be-developed GTK util.  Wtf?! Anyway, you may apply the patch I keep updated in this github repo until something official comes out.
 
+## Contributors
+* graysky2 (v25-v30)
+* dolohow  (v32+)
+
 ## Arch linux package
 [Here](https://aur.archlinux.org/packages/chromium-scroll-pixels) is an Arch PKGBUILD that mirrors that of the official [community]/chromium I maintain that has this patch enabled.
 
