@@ -1,0 +1,161 @@
+--- chromium-35.0.1916.114/chrome/browser/chromeos/login/chrome_restart_request.cc	2014-05-14 21:23:22.000000000 +0200
++++ chromium-35.0.1916.114-2/chrome/browser/chromeos/login/chrome_restart_request.cc	2014-05-21 00:45:59.644392108 +0200
+@@ -127,6 +127,7 @@
+     ::switches::kGpuSandboxFailuresFatal,
+     ::switches::kGpuSandboxStartAfterInitialization,
+     ::switches::kMultiProfiles,
++    ::switches::kScrollPixels,
+     ::switches::kNoSandbox,
+     ::switches::kNumRasterThreads,
+     ::switches::kPpapiFlashArgs,
+--- chromium-35.0.1916.114/content/browser/renderer_host/render_widget_host_view_gtk.cc	2014-05-14 21:22:03.000000000 +0200
++++ chromium-35.0.1916.114-2/content/browser/renderer_host/render_widget_host_view_gtk.cc	2014-05-21 00:59:04.279582818 +0200
+@@ -42,6 +42,7 @@
+ #include "skia/ext/platform_canvas.h"
+ #include "third_party/WebKit/public/platform/WebScreenInfo.h"
+ #include "third_party/WebKit/public/web/WebInputEvent.h"
++#include "third_party/WebKit/public/web/gtk/WebInputEventFactory.h"
+ #include "ui/base/clipboard/scoped_clipboard_writer.h"
+ #include "ui/base/x/active_window_watcher_x.h"
+ #include "ui/base/x/x11_util.h"
+@@ -50,6 +51,7 @@
+ #include "ui/gfx/gtk_preserve_window.h"
+ #include "ui/gfx/text_elider.h"
+ 
++using blink::WebInputEventFactory;
+ using blink::WebMouseWheelEvent;
+ using blink::WebScreenInfo;
+ 
+@@ -69,6 +71,10 @@
+ const int kMaxWindowWidth = 10000;
+ const int kMaxWindowHeight = 10000;
+ 
++// See WebInputEventFactor.cpp for a reason for this being the default
++// scroll size for linux.
++const float kDefaultScrollPixelsPerTick = 160.0f / 3.0f;
++
+ const GdkColor kBGColor =
+ #if defined(NDEBUG)
+     { 0, 0xff * 257, 0xff * 257, 0xff * 257 };
+@@ -359,7 +365,7 @@
+     RenderWidgetHostImpl* widget_host =
+         RenderWidgetHostImpl::From(host_view->GetRenderWidgetHost());
+     if (widget_host)
+-      widget_host->ForwardMouseEvent(WebMouseEventBuilder::Build(event));
++      widget_host->ForwardMouseEvent(WebInputEventFactory::mouseEvent(event));
+ 
+     // Although we did handle the mouse event, we need to let other handlers
+     // run (in particular the one installed by WebContentsViewGtk).
+@@ -385,7 +391,8 @@
+ 
+     host_view->ModifyEventForEdgeDragging(widget, event);
+ 
+-    blink::WebMouseEvent mouse_event = WebMouseEventBuilder::Build(event);
++    blink::WebMouseEvent mouse_event =
++        WebInputEventFactory::mouseEvent(event);
+ 
+     if (host_view->mouse_locked_) {
+       gfx::Point center = host_view->GetWidgetCenter();
+@@ -435,7 +442,8 @@
+     // additionally send this crossing event with the state indicating the
+     // button is down, it causes problems with drag and drop in WebKit.)
+     if (!(event->state & any_button_mask)) {
+-      blink::WebMouseEvent mouse_event = WebMouseEventBuilder::Build(event);
++      blink::WebMouseEvent mouse_event =
++          WebInputEventFactory::mouseEvent(event);
+       host_view->ModifyEventMovementAndCoords(&mouse_event);
+       // When crossing out and back into a render view the movement values
+       // must represent the instantaneous movement of the mouse, not the jump
+@@ -459,6 +467,28 @@
+   }
+ 
+   // Return the net up / down (or left / right) distance represented by events
++  // Allow the vertical scroll delta to be overridden from the command line.
++  // This will allow us to test more easily to discover the amount
++  // (either hard coded or computed) that's best.
++  static float GetScrollPixelsPerTick() {
++    static float scroll_pixels = -1;
++    if (scroll_pixels < 0) {
++      // TODO(brettw): Remove the command line switch (crbug.com/63525)
++      scroll_pixels = kDefaultScrollPixelsPerTick;
++      CommandLine* command_line = CommandLine::ForCurrentProcess();
++      std::string scroll_pixels_option =
++          command_line->GetSwitchValueASCII(switches::kScrollPixels);
++      if (!scroll_pixels_option.empty()) {
++        double v;
++        if (base::StringToDouble(scroll_pixels_option, &v))
++          scroll_pixels = static_cast<float>(v);
++      }
++      DCHECK_GT(scroll_pixels, 0);
++    }
++    return scroll_pixels;
++  }
++
++  // Return the net up / down (or left / right) distance represented by events
+   // in the  events will be removed from the queue. We only look at the top of
+   // queue...any other type of event will cause us not to look farther.
+   // If there is a change to the set of modifier keys or scroll axis
+@@ -503,7 +533,7 @@
+       gdk_event_put(event);
+       gdk_event_free(event);
+     }
+-    return num_clicks * WebMouseWheelEventBuilder::ScrollbarPixelsPerTick();
++    return num_clicks * GetScrollPixelsPerTick();
+   }
+ 
+   static gboolean OnMouseScrollEvent(GtkWidget* widget,
+@@ -521,23 +551,21 @@
+         event->direction = GDK_SCROLL_RIGHT;
+     }
+ 
+-    WebMouseWheelEvent web_event = WebMouseWheelEventBuilder::Build(event);
+-    const float pixelsPerTick =
+-        WebMouseWheelEventBuilder::ScrollbarPixelsPerTick();
++    WebMouseWheelEvent web_event = WebInputEventFactory::mouseWheelEvent(event);
+     // We  peek ahead at the top of the queue to look for additional pending
+     // scroll events.
+     if (event->direction == GDK_SCROLL_UP ||
+         event->direction == GDK_SCROLL_DOWN) {
+       if (event->direction == GDK_SCROLL_UP)
+-        web_event.deltaY = pixelsPerTick;
++        web_event.deltaY = GetScrollPixelsPerTick();
+       else
+-        web_event.deltaY = -pixelsPerTick;
++        web_event.deltaY = -GetScrollPixelsPerTick();
+       web_event.deltaY += GetPendingScrollDelta(true, event->state);
+     } else {
+       if (event->direction == GDK_SCROLL_LEFT)
+-        web_event.deltaX = pixelsPerTick;
++        web_event.deltaX = GetScrollPixelsPerTick();
+       else
+-        web_event.deltaX = -pixelsPerTick;
++        web_event.deltaX = -GetScrollPixelsPerTick();
+       web_event.deltaX += GetPendingScrollDelta(false, event->state);
+     }
+     RenderWidgetHostImpl::From(
+--- chromium-35.0.1916.114/content/public/common/content_switches.cc	2014-05-14 21:22:06.000000000 +0200
++++ chromium-35.0.1916.114-2/content/public/common/content_switches.cc	2014-05-21 00:52:45.784314660 +0200
+@@ -1056,6 +1056,11 @@
+ const char kChildCleanExit[]                = "child-clean-exit";
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++// Specify the amount the trackpad should scroll by.
++const char kScrollPixels[]                  = "scroll-pixels";
++#endif
++
+ // Don't dump stuff here, follow the same order as the header.
+ 
+ }  // namespace switches
+--- chromium-35.0.1916.114/content/public/common/content_switches.h	2014-05-14 21:22:06.000000000 +0200
++++ chromium-35.0.1916.114-2/content/public/common/content_switches.h	2014-05-21 00:53:19.188897046 +0200
+@@ -317,6 +317,10 @@
+ extern const char kChildCleanExit[];
+ #endif
+ 
++#if defined(OS_POSIX) && !defined(OS_MACOSX)
++extern const char kScrollPixels[];
++#endif
++
+ // DON'T ADD RANDOM STUFF HERE. Put it in the main section above in
+ // alphabetical order, or in one of the ifdefs (also in order in each section).
